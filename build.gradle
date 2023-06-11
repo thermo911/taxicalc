@@ -1,0 +1,27 @@
+plugins {
+    id 'java'
+}
+
+group 'com.github.thermo911'
+version '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+java {
+    version(17)
+}
+
+dependencies {
+    implementation 'org.apache.parquet:parquet-avro:1.13.1'
+    implementation 'org.apache.hadoop:hadoop-common:3.3.5'
+
+
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.1'
+}
+
+test {
+    useJUnitPlatform()
+}
