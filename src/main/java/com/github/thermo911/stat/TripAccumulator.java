@@ -12,7 +12,6 @@ public class TripAccumulator implements Accumulator<Trip, Map<Integer, Double>> 
 
     @Override
     public void accept(Trip value) {
-        System.out.println(value);
         accumulators.compute(value.passengerCount(), (k, v) -> {
             if (v == null) {
                 v = new AverageAccumulator();
