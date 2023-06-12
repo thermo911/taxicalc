@@ -79,14 +79,14 @@ public class ParquetTripDataset implements TripDataset {
             maxs.get(currRowGroupIndex).accept(trip.dropoffTimeMs());
         }
 
-        List<TripDatasetIndex.MinMax> rowGroupsMinMax = newRowGroupIndicesStream()
-                .mapToObj(i -> new TripDatasetIndex.MinMax(
+        List<DummyTripDatasetIndex.MinMax> rowGroupsMinMax = newRowGroupIndicesStream()
+                .mapToObj(i -> new DummyTripDatasetIndex.MinMax(
                         mins.get(i).getResult(),
                         maxs.get(i).getResult()
                 ))
                 .toList();
 
-        tripDatasetIndex = new TripDatasetIndex(rowGroupsMinMax);
+        tripDatasetIndex = new DummyTripDatasetIndex(rowGroupsMinMax);
     }
 
     private IntStream newRowGroupIndicesStream() {
@@ -138,7 +138,7 @@ public class ParquetTripDataset implements TripDataset {
 
         @Override
         public boolean hasNext() {
-            if (currRowGroup == null && !nextRowGroup()) {
+            if (currRowGroup == null && !readNextRowGroup()) {
                 return false;
             }
 
@@ -163,7 +163,7 @@ public class ParquetTripDataset implements TripDataset {
             return nextTrip != null;
         }
 
-        private boolean nextRowGroup() {
+        private boolean readNextRowGroup() {
             currRowGroupIndex = null;
             currRowGroup = null;
             currRow = 0;
