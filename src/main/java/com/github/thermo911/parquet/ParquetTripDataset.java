@@ -2,8 +2,8 @@ package com.github.thermo911.parquet;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -14,6 +14,7 @@ import com.github.thermo911.data.Trip;
 import com.github.thermo911.data.TripDataset;
 import com.github.thermo911.stat.MaxLongAccumulator;
 import com.github.thermo911.stat.MinLongAccumulator;
+import com.github.thermo911.util.Utils;
 import org.apache.hadoop.fs.Path;
 import org.apache.parquet.column.page.PageReadStore;
 import org.apache.parquet.hadoop.ParquetFileReader;
@@ -95,8 +96,12 @@ public class ParquetTripDataset implements TripDataset {
 
     @Override
     public Iterator<Trip> trips(LocalDateTime start, LocalDateTime end) {
-        long startMillis = start.toEpochSecond(ZoneOffset.UTC) * 1_000_000L;
-        long endMillis = end.toEpochSecond(ZoneOffset.UTC) * 1_000_000L;
+        if (start.isAfter(end)) {
+            return Collections.emptyIterator();
+        }
+
+        long startMillis = Utils.toEpochMillis(start);
+        long endMillis = Utils.toEpochMillis(end);
         Iterator<Integer> rowGroupsIndices = tripDatasetIndex.getRowGroupIndices(startMillis, endMillis).iterator();
         return new TripDatasetIterator(startMillis, endMillis, rowGroupsIndices);
     }
@@ -113,7 +118,6 @@ public class ParquetTripDataset implements TripDataset {
         private final Iterator<Integer> rowGroupIndices;
         private Integer currRowGroupIndex;
 
-        private PageReadStore currRowGroup;
         private RecordReader<Trip> currRecordReader;
         private long currRowsCount;
         private long currRow;
@@ -138,25 +142,22 @@ public class ParquetTripDataset implements TripDataset {
 
         @Override
         public boolean hasNext() {
-            if (currRowGroup == null && !readNextRowGroup()) {
+            if (nextTrip != null) {
+                return true;
+            }
+            if (currRow == currRowsCount && !readNextRowGroup()) {
                 return false;
             }
 
-            if (nextTrip == null) {
-                while (currRow < currRowsCount) {
-                    Trip trip = currRecordReader.read();
-                    currRow++;
-                    if (trip == TripConverter.BROKEN_TRIP) {
-                        continue;
-                    }
-                    if (startTimeMillis <= trip.pickupTimeMs() && trip.dropoffTimeMs() <= endTimeMillis) {
-                        nextTrip = trip;
-                        break;
-                    }
+            while (currRow < currRowsCount) {
+                Trip trip = currRecordReader.read();
+                currRow++;
+                if (trip == TripConverter.BROKEN_TRIP) {
+                    continue;
                 }
-                if (currRow == currRowsCount) {
-                    // end of current row group
-                    currRowGroup = null;
+                if (startTimeMillis <= trip.pickupTimeMs() && trip.dropoffTimeMs() <= endTimeMillis) {
+                    nextTrip = trip;
+                    break;
                 }
             }
 
@@ -165,11 +166,11 @@ public class ParquetTripDataset implements TripDataset {
 
         private boolean readNextRowGroup() {
             currRowGroupIndex = null;
-            currRowGroup = null;
             currRow = 0;
             currRecordReader = null;
             currRowsCount = 0;
 
+            PageReadStore currRowGroup = null;
             if (rowGroupIndices.hasNext()) {
                 try {
                     currRowGroupIndex = rowGroupIndices.next();
