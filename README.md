@@ -1,4 +1,4 @@
-# Analyzing taxi rides
+# taxicalc
 
 [Apache Parquet](https://parquet.apache.org/docs/) files reading/writing
 and having fun :)
