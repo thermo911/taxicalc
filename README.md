@@ -101,3 +101,4 @@ What else must be checked on "production level":
 1. Proper work of indexing mechanism
 2. Some edge cases
 3. Performance
+4. Error handling and recovery
