@@ -20,7 +20,7 @@ and having fun :)
 - JUnit 5
 
 ## Applied optimizations
-### Data projection
+### Column pruning
 As Apache Parquet is column-oriented format it allows not to read all columns during 
 scan but ones participating in "query" only. In this project data projection is performed
 in following way:
@@ -37,7 +37,7 @@ MessageType schema = project(reader.getFooter().getFileMetaData().getSchema());
 reader.setRequestedSchema(schema);
 ```
 
-### Trip dataset index
+### Row group pruning
 Instead of scanning all row groups in Parquet file it is reasonable to scan only those
 that could contain data being searched. Here we have interface `TripDatasetIndex` and
 its trivial implementation `DummyTripDatasetIndex`.
